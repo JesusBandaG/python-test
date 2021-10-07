@@ -12,9 +12,5 @@ setup(
     description='Colektia ETL process test.',
     long_description=long_description,
     long_description_content_type="text/markdown",
-    install_requires=[
-        "pandas==1.0.5",
-        "numpy>=19.5.1",
-    ],
     python_requires='3.8'
 )

@@ -2,11 +2,12 @@ import pandas as pd
 from datetime import date, datetime
 import os
 import shutil
+import sys
 import sqlite3 as sql
 
 def extract_data():
   fileName = input("Ingrese la ruta del archivo en formato csv: ")
-  print(f"Ha seleccionado el archivo '{fileName}'.")
+  print(f"Ha seleccionado el archivo '{fileName}'.\n")
 
   dtypes = {
     'fiscal_id': 'str',
@@ -25,8 +26,16 @@ def extract_data():
     'telefono': 'str'
   }
   parse_dates = ['fecha_nacimiento', 'fecha_vencimiento']
-  
-  df = pd.read_csv(fileName, sep=';', dtype=dtypes, parse_dates=parse_dates)
+  print("Extrayendo información del archivo seleccionado...")
+
+  try:
+    df = pd.read_csv(fileName, sep=';', dtype=dtypes, parse_dates=parse_dates)
+    print("Extracción de la información exitosa.\n")
+  except:
+    print(f"Error al extraer la información del archivo ubicado en '{fileName}', verifique que la ruta sea correcta\n"
+          "y ejecute de nuevo el programa.")
+    sys.exit(1)
+    
   df = df.applymap(lambda value: value.upper() if type(value) == str else value)
 
   df["prioridad"] = df['prioridad'].astype(pd.Int64Dtype())
@@ -82,7 +91,7 @@ def transform_data(df):
 
 def load_data():
   print('Cargando información a la base de datos...')
-  
+
   try:
     conn = sql.connect('database.db3')
 
@@ -96,9 +105,9 @@ def load_data():
     emails.to_sql('emails', conn, index=False, if_exists='replace')
     phones.to_sql('phones', conn, index=False, if_exists='replace')
 
-    print('Carga exitosa')
+    print('\n¡Carga exitosa!')
   except:
-    print('Error al cargar la información a la base de datos.')
+    print('\n¡Error al cargar la información a la base de datos!')
 
 if __name__ == '__main__':
   df = extract_data()
