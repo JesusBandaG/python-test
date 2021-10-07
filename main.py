@@ -1,6 +1,5 @@
 import pandas as pd
-from datetime import datetime
-from datetime import date
+from datetime import date, datetime
 import os
 import shutil
 import sqlite3 as sql
@@ -16,20 +15,23 @@ def extract_data():
     'gender': 'str',
     'fecha_nacimiento': 'str',
     'fecha_vencimiento': 'str',
-    'deuda': 'int16',
+    'deuda': 'int',
     'direccion': 'str',
-    'altura': 'int16',
-    'peso': 'int16',
+    'altura': 'int',
+    'peso': 'int',
     'correo': 'str',
     'estatus_contacto': 'str',
     'prioridad': 'float',
     'telefono': 'str'
-    }
+  }
   parse_dates = ['fecha_nacimiento', 'fecha_vencimiento']
   
   df = pd.read_csv(fileName, sep=';', dtype=dtypes, parse_dates=parse_dates)
   df = df.applymap(lambda value: value.upper() if type(value) == str else value)
+
   df["prioridad"] = df['prioridad'].astype(pd.Int64Dtype())
+  df['prioridad'].fillna(value = 0, inplace = True)
+  df.fillna(value = 'N/A', inplace = True)
 
   return df
 
@@ -44,16 +46,16 @@ def define_age_group(age):
   return age_group_df
 
 def transform_data(df):
-  # Clients table
+  # Customers table
   age = df['fecha_nacimiento'].apply(calculate_age)
-  clients = df.iloc[:, :8].copy()
-  clients.insert(5, "age", age)
-  age_group = define_age_group(clients['age'])
-  clients.insert(6, "age_group", age_group)
-  delinquency = (datetime.today() - clients['fecha_vencimiento']).dt.days
-  clients.insert(8, "delinquency", delinquency)
-  new_clients_names = {'fecha_nacimiento': 'birth_date', 'fecha_vencimiento': 'due_date', 'deuda': 'due_balance', 'direccion': 'address'}
-  clients = clients.rename(columns=new_clients_names)
+  customers = df.iloc[:, :8].copy()
+  customers.insert(5, "age", age)
+  age_group = define_age_group(customers['age'])
+  customers.insert(6, "age_group", age_group)
+  delinquency = (datetime.today() - customers['fecha_vencimiento']).dt.days
+  customers.insert(8, "delinquency", delinquency)
+  new_customers_names = {'fecha_nacimiento': 'birth_date', 'fecha_vencimiento': 'due_date', 'deuda': 'due_balance', 'direccion': 'address'}
+  customers = customers.rename(columns=new_customers_names)
 
   # Emails table
   emails_cols = ['fiscal_id', 'correo', 'estatus_contacto', 'prioridad']
@@ -74,24 +76,29 @@ def transform_data(df):
   else: 
     os.mkdir('output')
 
-  clients.to_excel('output/clientes.xlsx', index=False)
+  customers.to_excel('output/clientes.xlsx', index=False)
   emails.to_excel('output/emails.xlsx', index=False)
   phones.to_excel('output/phones.xlsx', index=False)
 
 def load_data():
-  if (os.path.isfile('database.db3')):
-    os.remove('database.db3')
-    conn = sql.connect('database.db3')
-  else: 
+  print('Cargando información a la base de datos...')
+  
+  try:
     conn = sql.connect('database.db3')
 
-  customers = pd.read_excel('output/clientes.xlsx')
-  emails = pd.read_excel('output/emails.xlsx')
-  phones = pd.read_excel('output/phones.xlsx')
+    # Reading data from Excel saved files
+    customers = pd.read_excel('output/clientes.xlsx')
+    emails = pd.read_excel('output/emails.xlsx')
+    phones = pd.read_excel('output/phones.xlsx', dtype={'phone': 'str'})
+    
+    # Loading tables into SQlite database
+    customers.to_sql('customers', conn, index=False, if_exists='replace')
+    emails.to_sql('emails', conn, index=False, if_exists='replace')
+    phones.to_sql('phones', conn, index=False, if_exists='replace')
 
-  customers.to_sql('customers', conn, index=False)
-  emails.to_sql('emails', conn, index=False)
-  phones.to_sql('phones', conn, index=False)
+    print('Carga exitosa')
+  except:
+    print('Error al cargar la información a la base de datos.')
 
 if __name__ == '__main__':
   df = extract_data()
