@@ -1,6 +1,9 @@
 import pandas as pd
 from datetime import datetime
 from datetime import date
+import os
+import shutil
+import sqlite3 as sql
 
 def extract_data():
   fileName = input("Ingrese la ruta del archivo en formato csv: ")
@@ -65,12 +68,30 @@ def transform_data(df):
   phones = phones.rename(columns=new_phones_names)
 
   # Saving tables in Excel files
-  clients.to_excel('clientes.xlsx', index=False)
-  emails.to_excel('emails.xlsx', index=False)
-  phones.to_excel('phones.xlsx', index=False)
+  if (os.path.isdir('output')):
+    shutil.rmtree('output')
+    os.mkdir('output')
+  else: 
+    os.mkdir('output')
 
-def load_data(df):
-  print("Loading data...")
+  clients.to_excel('output/clientes.xlsx', index=False)
+  emails.to_excel('output/emails.xlsx', index=False)
+  phones.to_excel('output/phones.xlsx', index=False)
+
+def load_data():
+  if (os.path.isfile('database.db3')):
+    os.remove('database.db3')
+    conn = sql.connect('database.db3')
+  else: 
+    conn = sql.connect('database.db3')
+
+  customers = pd.read_excel('output/clientes.xlsx')
+  emails = pd.read_excel('output/emails.xlsx')
+  phones = pd.read_excel('output/phones.xlsx')
+
+  customers.to_sql('customers', conn, index=False)
+  emails.to_sql('emails', conn, index=False)
+  phones.to_sql('phones', conn, index=False)
 
 if __name__ == '__main__':
   df = extract_data()
